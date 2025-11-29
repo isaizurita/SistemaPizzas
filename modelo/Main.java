@@ -43,14 +43,31 @@ public class Main
                 
                 pedidoJuan.registrarObservador(pantallaCocina);
 
-                // 4. Proceso de Pago (Proxy -> Adapter)
-                ServicioPago sistemaPago = new ProxyPago();
+                // 4. Selección de Método de Pago
+                ServicioPago sistemaPago;
+                
+                String metodoSeleccionado = "efectivo"; 
+
+                if (metodoSeleccionado.equalsIgnoreCase("tarjeta")) 
+                    {
+                        // Usa el Proxy -> Adapter -> Banco (con validación estricta de proxy + adapter)
+                        sistemaPago = new ProxyPago();
+                    } 
+                else 
+                    {
+                        // Usa la clase simple (cobro directo sin validación bancaria)
+                        sistemaPago = new PagoEfectivo();
+                    }
+
+                // Procesamos el pago independientemente del método (polimorifsmo)
                 boolean pagado = sistemaPago.procesarPago(pedidoJuan.getCostoFinal());
 
                 if (pagado) 
                     {
                         System.out.println("\nPago exitoso. Enviando orden a cocina...\n");
+                        
                         // 5. Envío a Cocina (Singleton y State automático)
+                        // Nota: La notificación de "EN PREPARACIÓN" ya se hace dentro de Cocina.recibirPedido
                         Cocina cocina = Cocina.getInstancia();
                         cocina.recibirPedido(pedidoJuan);
                     } 
