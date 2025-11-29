@@ -15,10 +15,10 @@ public class PizzaPersonalizadaBuilder implements PizzaBuilder
         private FabricaIngredientes fabrica;
 
         // Definimos las listas de opciones válidas (Reglas de Negocio)
-        private static final List<String> MASAS_VALIDAS = Arrays.asList("tradicional", "crujiente", "de sarten", "delgada");
-        private static final List<String> SALSAS_VALIDAS = Arrays.asList("tomate", "bbq", "ranch", "picante");
-        private static final List<String> ORILLAS_VALIDAS = Arrays.asList("normal", "rellena de queso", "sin orilla");
-        private static final List<String> QUESOS_VALIDOS = Arrays.asList("mozzarella", "parmesano", "cheddar", "sin queso");
+        private static final List<String> masasValidas = Arrays.asList("tradicional", "crujiente", "de sarten", "delgada");
+        private static final List<String> salsasValidas = Arrays.asList("tomate", "bbq", "ranch", "picante");
+        private static final List<String> orillasValidas = Arrays.asList("normal", "rellena de queso", "sin orilla");
+        private static final List<String> quesosValidos = Arrays.asList("mozzarella", "parmesano", "cheddar", "sin queso");
 
         /**
          * Inicializa el builder creando una nueva instancia de Pizza y la fábrica de ingredientes.
@@ -39,7 +39,7 @@ public class PizzaPersonalizadaBuilder implements PizzaBuilder
         @Override
         public void buildMasa(String tipoMasa) 
             {
-                if (tipoMasa != null && MASAS_VALIDAS.contains(tipoMasa.toLowerCase())) 
+                if (tipoMasa != null && masasValidas.contains(tipoMasa.toLowerCase())) 
                     {
                         pizza.setMasa(tipoMasa);
                     } 
@@ -59,7 +59,7 @@ public class PizzaPersonalizadaBuilder implements PizzaBuilder
         @Override
         public void buildSalsa(String tipoSalsa) 
             {
-                if (tipoSalsa != null && SALSAS_VALIDAS.contains(tipoSalsa.toLowerCase())) 
+                if (tipoSalsa != null && salsasValidas.contains(tipoSalsa.toLowerCase())) 
                     {
                         pizza.setSalsa(tipoSalsa);
                     } 
@@ -79,7 +79,7 @@ public class PizzaPersonalizadaBuilder implements PizzaBuilder
         @Override
         public void buildOrilla(String tipoOrilla) 
             {
-                if (tipoOrilla != null && ORILLAS_VALIDAS.contains(tipoOrilla.toLowerCase())) 
+                if (tipoOrilla != null && orillasValidas.contains(tipoOrilla.toLowerCase())) 
                     {
                         pizza.setOrilla(tipoOrilla);
                     } 
@@ -99,7 +99,7 @@ public class PizzaPersonalizadaBuilder implements PizzaBuilder
         @Override
         public void buildQueso(String tipoQueso) 
             {
-                if (tipoQueso != null && QUESOS_VALIDOS.contains(tipoQueso.toLowerCase())) 
+                if (tipoQueso != null && quesosValidos.contains(tipoQueso.toLowerCase())) 
                     {
                         pizza.setTipoQueso(tipoQueso);
                     } 
