@@ -7,12 +7,12 @@ public class Main
     {
         public static void main(String[] args) 
             {
-                System.out.println("\n*** SISTEMA DE PIZZAS PERSONALIZADAS (CLASE DE PRUEBA) ***\n");
+                System.out.println("\n*** SISTEMA DE PIZZAS PERSONALIZADAS (CLASE DE PRUEBA) ***");
 
                 // 1. Configuración del Builder para crear una pizza
                 PizzaBuilder builder = new PizzaPersonalizadaBuilder();
                 
-                builder.buildMasa("coliflor");
+                builder.buildMasa("de sarten");
                 builder.buildSalsa("bbq");
                 builder.buildOrilla("sin orilla");
                 builder.buildQueso("mozzarella");
@@ -22,6 +22,7 @@ public class Main
                 builder.buildIngrediente("Queso Extra");
                 builder.buildIngrediente("Pimientos");
                 builder.buildIngrediente("Champiñones");
+                builder.buildIngrediente("Albahacar");
 
                 Pizza pizzaTerminada = builder.getPizza();
                 System.out.println("\nPizza construida: " + pizzaTerminada.getDescripcion());

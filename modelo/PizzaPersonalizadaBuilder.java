@@ -15,7 +15,7 @@ public class PizzaPersonalizadaBuilder implements PizzaBuilder
         private FabricaIngredientes fabrica;
 
         // Definimos las listas de opciones válidas (Reglas de Negocio)
-        private static final List<String> MASAS_VALIDAS = Arrays.asList("tradicional", "crujiente", "sarten", "delgada");
+        private static final List<String> MASAS_VALIDAS = Arrays.asList("tradicional", "crujiente", "de sarten", "delgada");
         private static final List<String> SALSAS_VALIDAS = Arrays.asList("tomate", "bbq", "ranch", "picante");
         private static final List<String> ORILLAS_VALIDAS = Arrays.asList("normal", "rellena de queso", "sin orilla");
         private static final List<String> QUESOS_VALIDOS = Arrays.asList("mozzarella", "parmesano", "cheddar", "sin queso");
