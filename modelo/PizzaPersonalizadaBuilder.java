@@ -18,6 +18,7 @@ public class PizzaPersonalizadaBuilder implements PizzaBuilder
         private static final List<String> MASAS_VALIDAS = Arrays.asList("tradicional", "crujiente", "sarten", "delgada");
         private static final List<String> SALSAS_VALIDAS = Arrays.asList("tomate", "bbq", "ranch", "picante");
         private static final List<String> ORILLAS_VALIDAS = Arrays.asList("normal", "rellena de queso", "sin orilla");
+        private static final List<String> QUESOS_VALIDOS = Arrays.asList("mozzarella", "parmesano", "cheddar", "sin queso");
 
         /**
          * Inicializa el builder creando una nueva instancia de Pizza y la fábrica de ingredientes.
@@ -86,6 +87,26 @@ public class PizzaPersonalizadaBuilder implements PizzaBuilder
                     {
                         System.out.println(">> Aviso: Orilla '" + tipoOrilla + "' no reconocida. Se usará 'Normal'.");
                         pizza.setOrilla("Normal");
+                    }
+            }
+
+        /**
+         * Configura el tipo de queso.
+         * <p>Valida que la entrada exista en la lista de quesos válidos.
+         * Si lel tipo de queso no es válido, asigna "Normal" por defecto.
+         * * @param tipoQueso Descripción del tipo de queso.
+         */
+        @Override
+        public void buildQueso(String tipoQueso) 
+            {
+                if (tipoQueso != null && QUESOS_VALIDOS.contains(tipoQueso.toLowerCase())) 
+                    {
+                        pizza.setTipoQueso(tipoQueso);
+                    } 
+                else 
+                    {
+                        System.out.println(">> Aviso: Queso '" + tipoQueso + "' no reconocido. Se usará 'Mozzarella'.");
+                        pizza.setTipoQueso("Mozzarella");
                     }
             }
 

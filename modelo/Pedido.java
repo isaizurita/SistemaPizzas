@@ -56,7 +56,6 @@ public class Pedido implements Sujeto
             }
 
         // Implementación del Sujeto para Observer
-
         @Override
         public void registrarObservador(Observador o) 
             {

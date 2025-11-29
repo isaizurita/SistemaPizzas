@@ -12,6 +12,7 @@ public class Pizza
         private String masa;
         private String salsa;
         private String orilla;
+        private String tipoQueso;
         private List<Ingrediente> ingredientes;
 
         public Pizza() 
@@ -23,6 +24,7 @@ public class Pizza
         public void setMasa(String masa) { this.masa = masa; }
         public void setSalsa(String salsa) { this.salsa = salsa; }
         public void setOrilla(String orilla) { this.orilla = orilla; }
+        public void setTipoQueso(String tipoQueso) { this.tipoQueso = tipoQueso;}
 
         public void agregarIngrediente(Ingrediente ingrediente) 
             {
@@ -35,7 +37,7 @@ public class Pizza
          */
         public double calcularCosto() 
             {
-                // Costo base arbitrario por masa/tamaño
+                // Costo base por masa/tamaño
                 double total = 100.00; 
                 
                 for (Ingrediente ing : ingredientes) 
@@ -48,10 +50,11 @@ public class Pizza
         public String getDescripcion() 
             {
                 StringBuilder sb = new StringBuilder();
-                sb.append("Pizza con Masa ").append(masa)
-                  .append(", Salsa ").append(salsa)
-                  .append(", Orilla ").append(orilla)
-                  .append(". Ingredientes: ");
+                sb.append("\nTipo de masa: ").append(masa)
+                  .append("\nTipo de salsa: ").append(salsa)
+                  .append("\nTipo de orilla: ").append(orilla)
+                  .append("\nTipo de queso: ").append(tipoQueso)
+                  .append("\nIngredientes: ");
                 
                 if (ingredientes.isEmpty()) sb.append("Solo queso base.");
                 

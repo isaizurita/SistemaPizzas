@@ -7,7 +7,7 @@ public class Main
     {
         public static void main(String[] args) 
             {
-                System.out.println("=== SISTEMA DE PIZZAS PERSONALIZADAS (DEMO MODELO) ===\n");
+                System.out.println("\n*** SISTEMA DE PIZZAS PERSONALIZADAS (CLASE DE PRUEBA) ***\n");
 
                 // 1. Configuración del Builder para crear una pizza
                 PizzaBuilder builder = new PizzaPersonalizadaBuilder();
@@ -15,15 +15,17 @@ public class Main
                 builder.buildMasa("coliflor");
                 builder.buildSalsa("bbq");
                 builder.buildOrilla("sin orilla");
+                builder.buildQueso("mozzarella");
                 
                 // Agregamos ingredientes vía Factory (interna en el builder)
                 builder.buildIngrediente("Tocino");
                 builder.buildIngrediente("Queso Extra");
                 builder.buildIngrediente("Pimientos");
+                builder.buildIngrediente("Champiñones");
 
                 Pizza pizzaTerminada = builder.getPizza();
-                System.out.println("Pizza construida: " + pizzaTerminada.getDescripcion());
-                System.out.println("Costo calculado: $" + pizzaTerminada.calcularCosto());
+                System.out.println("\nPizza construida: " + pizzaTerminada.getDescripcion());
+                System.out.println("\nCosto calculado: $" + pizzaTerminada.calcularCosto());
 
                 // 2. Creación del Pedido
                 Pedido pedidoJuan = new Pedido(pizzaTerminada, "Juan Pérez");
@@ -47,7 +49,6 @@ public class Main
                 if (pagado) 
                     {
                         System.out.println("\nPago exitoso. Enviando orden a cocina...\n");
-                        
                         // 5. Envío a Cocina (Singleton y State automático)
                         Cocina cocina = Cocina.getInstancia();
                         cocina.recibirPedido(pedidoJuan);
@@ -56,7 +57,5 @@ public class Main
                     {
                         System.out.println("Error en el pago. Pedido cancelado.");
                     }
-                
-                System.out.println("\n=== FIN DE LA DEMO ===");
             }
     }

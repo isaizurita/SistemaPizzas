@@ -10,7 +10,7 @@ class Entregado implements EstadoPedido
         @Override
         public void siguiente(Pedido contexto) 
             {
-                // Estado final, no hay transición posterior lógica en este flujo
+                // Estado final, no hay otrro estado después de este
                 System.out.println("El pedido ya ha sido entregado.");
             }
 

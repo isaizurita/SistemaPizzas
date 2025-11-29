@@ -29,6 +29,7 @@ public class Cocina
         public void recibirPedido(Pedido pedido) 
             {
                 System.out.println("Cocina: Pedido recibido de " + pedido.getNombreCliente());
+                pedido.notificarObservadores();
                 colaPedidos.add(pedido);
                 procesarPedidos();
             }
