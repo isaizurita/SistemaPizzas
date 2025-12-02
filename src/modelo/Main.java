@@ -1,0 +1,79 @@
+package modelo;
+
+/**
+ * Clase principal para probar la integración de todos los patrones del Modelo.
+ */
+public class Main 
+    {
+        public static void main(String[] args) 
+            {
+                System.out.println("\n*** SISTEMA DE PIZZAS PERSONALIZADAS (CLASE DE PRUEBA) ***");
+
+                // 1. Configuración del Builder para crear una pizza
+                PizzaBuilder builder = new PizzaPersonalizadaBuilder();
+                
+                builder.buildMasa("de sarten");
+                builder.buildSalsa("bbq");
+                builder.buildOrilla("sin orilla");
+                builder.buildQueso("mozzarella");
+                
+                // Agregamos ingredientes vía Factory (interna en el builder)
+                builder.buildIngrediente("Tocino");
+                builder.buildIngrediente("Queso Extra");
+                builder.buildIngrediente("Pimientos");
+                builder.buildIngrediente("Champiñones");
+                builder.buildIngrediente("Albahacar");
+
+                Pizza pizzaTerminada = builder.getPizza();
+                System.out.println("\nPizza construida: " + pizzaTerminada.getDescripcion());
+                System.out.println("\nCosto calculado: $" + pizzaTerminada.calcularCosto());
+
+                // 2. Creación del Pedido
+                Pedido pedidoJuan = new Pedido(pizzaTerminada, "Juan Pérez");
+
+                // 3. Simulación de la Pantalla de Seguimiento (Observer)
+                Observador pantallaCocina = new Observador() 
+                    {
+                        @Override
+                        public void actualizar(String estado, String desc) 
+                            {
+                                System.out.println(">> [NOTIFICACIÓN UI] Estado actualizado a: " + estado.toUpperCase());
+                            }
+                    };
+                
+                pedidoJuan.registrarObservador(pantallaCocina);
+
+                // 4. Selección de Método de Pago
+                ServicioPago sistemaPago;
+                
+                String metodoSeleccionado = "efectivo"; 
+
+                if (metodoSeleccionado.equalsIgnoreCase("tarjeta")) 
+                    {
+                        // Usa el Proxy -> Adapter -> Banco (con validación estricta de proxy + adapter)
+                        sistemaPago = new ProxyPago();
+                    } 
+                else 
+                    {
+                        // Usa la clase simple (cobro directo sin validación bancaria)
+                        sistemaPago = new PagoEfectivo();
+                    }
+
+                // Procesamos el pago independientemente del método (polimorifsmo)
+                boolean pagado = sistemaPago.procesarPago(pedidoJuan.getCostoFinal());
+
+                if (pagado) 
+                    {
+                        System.out.println("\nPago exitoso. Enviando orden a cocina...\n");
+                        
+                        // 5. Envío a Cocina (Singleton y State automático)
+                        // Nota: La notificación de "EN PREPARACIÓN" ya se hace dentro de Cocina.recibirPedido
+                        Cocina cocina = Cocina.getInstancia();
+                        cocina.recibirPedido(pedidoJuan);
+                    } 
+                else 
+                    {
+                        System.out.println("Error en el pago. Pedido cancelado.");
+                    }
+            }
+    }

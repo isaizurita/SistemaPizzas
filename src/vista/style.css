@@ -1,0 +1,81 @@
+/* style.css - Guárdalo en tu carpeta de recursos (src/resources o junto a los java) */
+.root {
+    -fx-background-color: #152238; /* Fondo más oscuro */
+    -fx-font-family: "Segoe UI", Helvetica, Arial, sans-serif;
+}
+
+.header-label {
+    -fx-text-fill: white;
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+}
+
+.sub-header {
+    -fx-text-fill: #a0a0a0;
+    -fx-font-size: 14px;
+}
+
+/* Botones del Menú Principal */
+.menu-button {
+    -fx-background-color: #203354;
+    -fx-text-fill: white;
+    -fx-font-size: 18px;
+    -fx-background-radius: 10;
+    -fx-border-radius: 10;
+    -fx-border-color: #23395d;
+    -fx-border-width: 2;
+    -fx-cursor: hand;
+    -fx-pref-width: 250;
+    -fx-pref-height: 150;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.4), 10, 0, 0, 5);
+}
+
+.menu-button:hover {
+    -fx-background-color: #23395d;
+    -fx-scale-x: 1.05;
+    -fx-scale-y: 1.05;
+}
+
+/* Botones de Ingredientes (Grid) */
+.ingredient-toggle {
+    -fx-background-color: #1c2e4a;
+    -fx-text-fill: white;
+    -fx-background-radius: 5;
+    -fx-border-color: #555;
+    -fx-border-radius: 5;
+    -fx-content-display: TOP; /* Imagen arriba, texto abajo */
+    -fx-pref-width: 120;
+    -fx-pref-height: 120;
+}
+
+.ingredient-toggle:selected {
+    -fx-background-color: #23395d;
+    -fx-border-color: #FFA500; /* Naranja/Dorado al seleccionar */
+    -fx-border-width: 3;
+    -fx-effect: dropshadow(gaussian, #FFA500, 10, 0.5, 0, 0);
+}
+
+/* Botones de Acción (Pagar, Confirmar) */
+.action-button {
+    -fx-background-color: #FFA500; /* Contraste fuerte */
+    -fx-text-fill: #152238;
+    -fx-font-weight: bold;
+    -fx-font-size: 16px;
+    -fx-background-radius: 20;
+    -fx-cursor: hand;
+}
+
+.action-button:hover {
+    -fx-background-color: #FFD700;
+}
+
+/* Ticket / Resumen */
+.ticket-pane {
+    -fx-background-color: #ececec;
+    -fx-background-radius: 5;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.5), 10, 0, 0, 0);
+}
+
+.ticket-text {
+    -fx-text-fill: #152238; /* Texto oscuro sobre papel claro */
+}
