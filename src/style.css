@@ -1,6 +1,6 @@
 /* style.css */
 .root {
-    -fx-background-color: #152238; /* Tu azul más oscuro de fondo */
+    -fx-background-color: #152238;
     -fx-font-family: "Segoe UI", Helvetica, Arial, sans-serif;
     -fx-text-fill: white; /* Por defecto, texto blanco */
 }
@@ -24,7 +24,7 @@
 
 /* Botones del Menú Principal */
 .menu-button {
-    -fx-background-color: #203354; /* Azul intermedio */
+    -fx-background-color: #203354;
     -fx-text-fill: white;
     -fx-font-size: 18px;
     -fx-font-weight: bold;
@@ -38,14 +38,14 @@
 }
 
 .menu-button:hover {
-    -fx-background-color: #23395d; /* Un poco más claro al pasar el mouse */
+    -fx-background-color: #23395d; /* Un poco "más claro" al pasar el mouse */
     -fx-border-color: #FFA500;
 }
 
 /* Botones de Selección (Ingredientes/Masa) */
 .ingredient-toggle {
     -fx-background-color: #1c2e4a;
-    -fx-text-fill: white; /* Texto blanco explícito */
+    -fx-text-fill: white;
     -fx-font-size: 14px;
     -fx-background-radius: 5;
     -fx-border-color: #555;
@@ -61,19 +61,19 @@
     -fx-border-color: white;
 }
 
-/* Ticket en OrderView (Papel blanco) */
+/* Ticket en PantallaCaptura (Papel blanco del ticket) */
 .ticket-pane {
-    -fx-background-color: #f4f4f4; /* Fondo claro */
+    -fx-background-color: #f4f4f4;
     -fx-background-radius: 5;
     -fx-padding: 15;
     -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.5), 10, 0, 0, 0);
 }
-/* Forzamos texto oscuro DENTRO del ticket */
+/* Forzamos texto oscuro adentro del ticket */
 .ticket-pane .label {
     -fx-text-fill: #152238; 
 }
 
-/* Tarjetas de Cocina (KDS) */
+/* Tarjetas de PantallaCocina con cada orden */
 .kitchen-ticket {
     -fx-background-color: #ffffff;
     -fx-background-radius: 8;
@@ -84,7 +84,7 @@
     -fx-text-fill: #152238;
 }
 
-/* Listas en Pantalla Externa */
+/* Listas en PantallaExterna */
 .list-cell {
     -fx-background-color: transparent;
     -fx-text-fill: #152238;

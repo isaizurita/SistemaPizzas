@@ -130,7 +130,7 @@ public class PantallaMenu extends Application {
     }
 
     /**
-     * Fábrica de botones estilo "Tarjeta Dashboard"
+     * Fábrica de botones estilo tarjeta
      */
     private Button crearBotonMenu(String texto) {
         Button btn = new Button(texto);

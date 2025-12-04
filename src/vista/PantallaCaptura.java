@@ -40,7 +40,6 @@ public class PantallaCaptura {
         view.setStyle("-fx-background-color: #0f192b; -fx-padding: 20;");
 
         // Inicializamods los controles independientes
-        // Debemos crear el TextField ANTES de crear el ticket, porque el ticket se "conecta" a él.
         txtNombreCliente = new TextField();
         txtNombreCliente.setPromptText("Ingrese nombre...");
         txtNombreCliente.setPrefWidth(250);

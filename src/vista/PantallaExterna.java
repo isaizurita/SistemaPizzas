@@ -44,7 +44,6 @@ public class PantallaExterna {
         // Botón de regreso
         Button btnVolver = new Button("⬅ Volver");
         
-        // Estilo "Action Button" Naranja
         btnVolver.setStyle(
             "-fx-background-color: #FFA500;" +   
             "-fx-text-fill: #152238;" +         
@@ -124,7 +123,7 @@ public class PantallaExterna {
     }
 
     /**
-     * Crea toda la sección visual (Título + Contenedor de cajitas)
+     * Crea toda la sección visual (Título + Contenedor de "cajitas")
      */
     private VBox crearSeccionVisual(String titulo, String[] ordenes, String colorTema, boolean destacado) {
         VBox seccion = new VBox(15);
@@ -148,7 +147,7 @@ public class PantallaExterna {
     }
 
     /**
-     * Crea la "Cajita" individual para cada número
+     * Crea la "cajita" individual para cada número
      */
     private StackPane crearTarjetaOrden(String numero, String color, boolean rellenoSolido) {
         StackPane tarjeta = new StackPane();
