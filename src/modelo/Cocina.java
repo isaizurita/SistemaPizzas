@@ -31,37 +31,29 @@ public class Cocina
                 System.out.println("Cocina: Pedido recibido de " + pedido.getNombreCliente());
                 pedido.notificarObservadores();
                 colaPedidos.add(pedido);
-                procesarPedidos();
+                new Thread(() -> procesarPedidos(pedido)).start();;
             }
 
         /**
          * Simula el ciclo de vida de preparación de los pedidos en cola.
          */
-        private void procesarPedidos() 
+        private void procesarPedidos(Pedido p) 
             {
-                // En un sistema real esto sería un hilo separado, aquí lo simulamos secuencial
-                while (!colaPedidos.isEmpty()) 
-                    {
-                        Pedido p = colaPedidos.poll();
-                        
-                        try 
-                            {
-                                // Simulación: Transición del estado En Preparación -> a Horneando
-                                Thread.sleep(1000); 
-                                p.avanzarEstado(); 
+                try {
+                    //Tiempo en "En Preparación"
+                    Thread.sleep(5000); // 5 segundos
+                    p.avanzarEstado(); // Pasa a Horneando
 
-                                // Simulación: Transición de Horneando -> Listo
-                                Thread.sleep(1000); 
-                                p.avanzarEstado();
+                    //Tiempo en "Horneando"
+                    Thread.sleep(7000); // 7 segundos
+                    p.avanzarEstado(); // Pasa a Listo
 
-                                // Simulación: Transición de Listo -> Entregado
-                                Thread.sleep(1000); 
-                                p.avanzarEstado();
+                    //Tiempo en "Listo para Entrega"
+                    Thread.sleep(5000); // 5 segundos
+                    p.avanzarEstado(); // Pasa a Entregado (y desaparece de toda pantalal)
 
-                            } catch (InterruptedException e) 
-                            {
-                                e.printStackTrace();
-                            }
-                    }
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
             }
     }

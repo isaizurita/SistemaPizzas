@@ -1,5 +1,6 @@
 package modelo;
 
+import vista.Observador;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -9,26 +10,23 @@ import java.util.List;
  */
 public class Pedido implements Sujeto 
     {
+        private String id;
         private Pizza pizza;
         private EstadoPedido estadoActual;
         private List<Observador> observadores;
         private String nombreCliente;
         private double costoFinal;
 
-        public Pedido(Pizza pizza, String nombreCliente) 
+        public Pedido(String id, Pizza pizza, String nombreCliente) 
             {
+                this.id = id;
                 this.pizza = pizza;
                 this.nombreCliente = nombreCliente;
                 this.observadores = new ArrayList<>();
-                // Estado inicial
                 this.estadoActual = new EnPreparacion(); 
                 this.costoFinal = pizza.calcularCosto();
             }
 
-        /**
-         * Avanza el estado del pedido al siguiente paso lógico.
-         * Delega el cambio al objeto de estado actual.
-         */
         public void avanzarEstado() 
             {
                 this.estadoActual.siguiente(this);
@@ -54,8 +52,13 @@ public class Pedido implements Sujeto
             {
                 return nombreCliente;
             }
+        
+        public String getId() 
+            {
+                return id;
+            }
 
-        // Implementación del Sujeto para Observer
+        // Implementación del sujeto para Observer
         @Override
         public void registrarObservador(Observador o) 
             {
@@ -73,7 +76,7 @@ public class Pedido implements Sujeto
             {
                 for (Observador o : observadores) 
                     {
-                        o.actualizar(estadoActual.getNombreEstado(), pizza.getDescripcion());
+                        o.actualizar(this.id, estadoActual.getNombreEstado(), pizza.getDescripcion());
                     }
             }
     }

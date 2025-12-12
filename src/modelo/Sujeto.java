@@ -1,5 +1,7 @@
 package modelo;
 
+import vista.Observador; //Importamos la interfaz de la capa de la vista
+
 /**
  * Interface del Sujeto (Observable) en el patrón Observer.
  */

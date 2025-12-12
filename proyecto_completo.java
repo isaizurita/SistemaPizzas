@@ -1,5 +1,93 @@
 
 
+package controlador;
+
+import java.util.List;
+import javafx.application.Platform;
+import modelo.*;
+import vista.Observador;
+import vista.PantallaCocina;
+import vista.PantallaExterna;
+
+public class ControladorGeneral implements Observador 
+    {
+        private PantallaCocina vistaCocina;
+        private PantallaExterna vistaExterna;
+        private Cocina cocinaModelo;
+
+        public ControladorGeneral(PantallaCocina vistaCocina, PantallaExterna vistaExterna) 
+            {
+                this.vistaCocina = vistaCocina;
+                this.vistaExterna = vistaExterna;
+                this.cocinaModelo = Cocina.getInstancia();
+            }
+
+        public boolean procesarNuevaOrden(String idOrden, String cliente, String masa, String salsa, String queso, String orilla, List<String> ingredientes, String metodoPago, double montoRecibido) 
+            {
+                // Construcción de la Pizza
+                PizzaBuilder builder = new PizzaPersonalizadaBuilder();
+                
+                builder.buildMasa(masa);
+                builder.buildSalsa(salsa);
+                builder.buildQueso(queso);
+                builder.buildOrilla(orilla);
+                
+                for (String ing : ingredientes) 
+                    {
+                        builder.buildIngrediente(ing);
+                    }
+                
+                Pizza pizza = builder.getPizza();
+
+                // Creación del Pedido
+                Pedido nuevoPedido = new Pedido(idOrden, pizza, cliente);
+                
+                // "Suscripción" del observador (pantallas)
+                nuevoPedido.registrarObservador(this);
+
+                // Procesamiento del Pago
+                ServicioPago servicioPago;
+                if (metodoPago.equalsIgnoreCase("TARJETA")) 
+                    {
+                        servicioPago = new ProxyPago();
+                    } 
+                else 
+                    {
+                        servicioPago = new PagoEfectivo();
+                    }
+
+                boolean pagoExitoso = servicioPago.procesarPago(nuevoPedido.getCostoFinal());
+
+                if (pagoExitoso) 
+                    {
+                        System.out.println("Controlador: Pago aprobado. Enviando orden " + idOrden + " a cocina...");
+                        new Thread(() -> cocinaModelo.recibirPedido(nuevoPedido)).start();
+                        return true;
+                    } 
+                else 
+                    {
+                        return false;
+                    }
+            }
+
+        @Override
+        public void actualizar(String idOrden, String estado, String descripcionPedido) 
+            {
+                Platform.runLater(() -> 
+                    {
+                        if (vistaCocina != null) 
+                            {
+                                vistaCocina.actualizarTarjeta(idOrden, descripcionPedido, estado);
+                            }
+
+                        if (vistaExterna != null) 
+                            {
+                                vistaExterna.actualizarEstadoOrden(idOrden, descripcionPedido, estado);
+                            }
+                    });
+            }
+    }
+
 package modelo;
 
 /**
@@ -43,6 +131,7 @@ class EnPreparacion implements EstadoPedido
 
 package modelo;
 
+import vista.Observador;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -52,26 +141,23 @@ import java.util.List;
  */
 public class Pedido implements Sujeto 
     {
+        private String id;
         private Pizza pizza;
         private EstadoPedido estadoActual;
         private List<Observador> observadores;
         private String nombreCliente;
         private double costoFinal;
 
-        public Pedido(Pizza pizza, String nombreCliente) 
+        public Pedido(String id, Pizza pizza, String nombreCliente) 
             {
+                this.id = id;
                 this.pizza = pizza;
                 this.nombreCliente = nombreCliente;
                 this.observadores = new ArrayList<>();
-                // Estado inicial
                 this.estadoActual = new EnPreparacion(); 
                 this.costoFinal = pizza.calcularCosto();
             }
 
-        /**
-         * Avanza el estado del pedido al siguiente paso lógico.
-         * Delega el cambio al objeto de estado actual.
-         */
         public void avanzarEstado() 
             {
                 this.estadoActual.siguiente(this);
@@ -97,8 +183,13 @@ public class Pedido implements Sujeto
             {
                 return nombreCliente;
             }
+        
+        public String getId() 
+            {
+                return id;
+            }
 
-        // Implementación del Sujeto para Observer
+        // Implementación del sujeto para Observer
         @Override
         public void registrarObservador(Observador o) 
             {
@@ -116,13 +207,14 @@ public class Pedido implements Sujeto
             {
                 for (Observador o : observadores) 
                     {
-                        o.actualizar(estadoActual.getNombreEstado(), pizza.getDescripcion());
+                        o.actualizar(this.id, estadoActual.getNombreEstado(), pizza.getDescripcion());
                     }
             }
     }
 
-
 package modelo;
+
+import vista.Observador; //Importamos la interfaz de la capa de la vista
 
 /**
  * Interface del Sujeto (Observable) en el patrón Observer.
@@ -208,32 +300,55 @@ package modelo;
 
 /**
  * Implementación concreta de la fábrica.
- * <p>Encargada de instanciar los ingredientes disponibles en el sistema.
+ * <p>Actualizada con el catálogo completo de la interfaz gráfica.
  */
 public class FabricaIngredientesConcreta extends FabricaIngredientes 
     {
         @Override
         public Ingrediente crearIngrediente(String tipo) 
             {
-                // 1. Normalizamos la entrada
+                if (tipo == null) return null;
+                
+                // Normalizamos entrada
                 switch (tipo.toLowerCase()) 
                     {
+                        // Carnes
                         case "pepperoni":
                             return new IngredienteConcreto("Pepperoni", 15.00);
+                        case "jamón": //Abarcamos casos con o sin tilde
                         case "jamon":
                             return new IngredienteConcreto("Jamón", 15.00);
                         case "tocino":
                             return new IngredienteConcreto("Tocino", 20.00);
+                        case "salchicha":
+                            return new IngredienteConcreto("Salchicha", 15.00);
+                        case "chorizo":
+                            return new IngredienteConcreto("Chorizo", 15.00);
+                        case "salami":
+                            return new IngredienteConcreto("Salami", 15.00);
+                        case "pollo":
+                            return new IngredienteConcreto("Pollo", 15.00);
+                        
                         case "pimientos":
                             return new IngredienteConcreto("Pimientos", 10.00);
-                        case "aceitunas":
-                            return new IngredienteConcreto("Aceitunas", 12.00);
                         case "champiñones":
                             return new IngredienteConcreto("Champiñones", 12.00);
                         case "albahacar":
-                            return new IngredienteConcreto("Albahacar", 15.00);
+                        case "albahaca":
+                            return new IngredienteConcreto("Albahaca", 12.00);
+                        case "cebolla":
+                            return new IngredienteConcreto("Cebolla", 10.00);
+                        case "maíz":
+                        case "maiz":
+                            return new IngredienteConcreto("Maíz", 10.00);
+                        case "aceitunas":
+                            return new IngredienteConcreto("Aceitunas", 12.00);
+
+                        case "parmesano":
+                            return new IngredienteConcreto("Parmesano", 15.00);
                         case "queso extra":
                             return new IngredienteConcreto("Queso Extra", 25.00);
+                            
                         default:
                             return null;
                     }
@@ -514,86 +629,6 @@ public interface PizzaBuilder
 package modelo;
 
 /**
- * Clase principal para probar la integración de todos los patrones del Modelo.
- */
-public class Main 
-    {
-        public static void main(String[] args) 
-            {
-                System.out.println("\n*** SISTEMA DE PIZZAS PERSONALIZADAS (CLASE DE PRUEBA) ***");
-
-                // 1. Configuración del Builder para crear una pizza
-                PizzaBuilder builder = new PizzaPersonalizadaBuilder();
-                
-                builder.buildMasa("de sarten");
-                builder.buildSalsa("bbq");
-                builder.buildOrilla("sin orilla");
-                builder.buildQueso("mozzarella");
-                
-                // Agregamos ingredientes vía Factory (interna en el builder)
-                builder.buildIngrediente("Tocino");
-                builder.buildIngrediente("Queso Extra");
-                builder.buildIngrediente("Pimientos");
-                builder.buildIngrediente("Champiñones");
-                builder.buildIngrediente("Albahacar");
-
-                Pizza pizzaTerminada = builder.getPizza();
-                System.out.println("\nPizza construida: " + pizzaTerminada.getDescripcion());
-                System.out.println("\nCosto calculado: $" + pizzaTerminada.calcularCosto());
-
-                // 2. Creación del Pedido
-                Pedido pedidoJuan = new Pedido(pizzaTerminada, "Juan Pérez");
-
-                // 3. Simulación de la Pantalla de Seguimiento (Observer)
-                Observador pantallaCocina = new Observador() 
-                    {
-                        @Override
-                        public void actualizar(String estado, String desc) 
-                            {
-                                System.out.println(">> [NOTIFICACIÓN UI] Estado actualizado a: " + estado.toUpperCase());
-                            }
-                    };
-                
-                pedidoJuan.registrarObservador(pantallaCocina);
-
-                // 4. Selección de Método de Pago
-                ServicioPago sistemaPago;
-                
-                String metodoSeleccionado = "efectivo"; 
-
-                if (metodoSeleccionado.equalsIgnoreCase("tarjeta")) 
-                    {
-                        // Usa el Proxy -> Adapter -> Banco (con validación estricta de proxy + adapter)
-                        sistemaPago = new ProxyPago();
-                    } 
-                else 
-                    {
-                        // Usa la clase simple (cobro directo sin validación bancaria)
-                        sistemaPago = new PagoEfectivo();
-                    }
-
-                // Procesamos el pago independientemente del método (polimorifsmo)
-                boolean pagado = sistemaPago.procesarPago(pedidoJuan.getCostoFinal());
-
-                if (pagado) 
-                    {
-                        System.out.println("\nPago exitoso. Enviando orden a cocina...\n");
-                        
-                        // 5. Envío a Cocina (Singleton y State automático)
-                        // Nota: La notificación de "EN PREPARACIÓN" ya se hace dentro de Cocina.recibirPedido
-                        Cocina cocina = Cocina.getInstancia();
-                        cocina.recibirPedido(pedidoJuan);
-                    } 
-                else 
-                    {
-                        System.out.println("Error en el pago. Pedido cancelado.");
-                    }
-            }
-    }
-
-package modelo;
-
-/**
  * Clase base para la fábrica de ingredientes.
  * Nos deja pedir ingredientes por nombre sin preocuparnos de qué clase exacta usar.
  */
@@ -701,7 +736,6 @@ public class Cocina
          */
         private void procesarPedidos() 
             {
-                // En un sistema real esto sería un hilo separado, aquí lo simulamos secuencial
                 while (!colaPedidos.isEmpty()) 
                     {
                         Pedido p = colaPedidos.poll();
@@ -709,15 +743,15 @@ public class Cocina
                         try 
                             {
                                 // Simulación: Transición del estado En Preparación -> a Horneando
-                                Thread.sleep(1000); 
+                                Thread.sleep(10000); // 10 segundos
                                 p.avanzarEstado(); 
 
                                 // Simulación: Transición de Horneando -> Listo
-                                Thread.sleep(1000); 
+                                Thread.sleep(10000); 
                                 p.avanzarEstado();
 
                                 // Simulación: Transición de Listo -> Entregado
-                                Thread.sleep(1000); 
+                                Thread.sleep(10000); 
                                 p.avanzarEstado();
 
                             } catch (InterruptedException e) 
@@ -746,14 +780,817 @@ class ListoParaEntrega implements EstadoPedido
         public String getNombreEstado() { return "Listo para Entrega"; }
     }
 
-package modelo;
+package vista;
+
+import controlador.ControladorGeneral;
+import javafx.application.Application;
+import javafx.geometry.Pos;
+import javafx.scene.Scene;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.layout.*;
+import javafx.scene.effect.DropShadow;
+import javafx.scene.paint.Color;
+import javafx.scene.text.TextAlignment;
+import javafx.scene.shape.Rectangle;
+import javafx.stage.Stage;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import javafx.animation.Animation;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
+import javafx.util.Duration;
+
+public class PantallaMenu extends Application {
+
+    private BorderPane rootLayout;
+    private Stage primaryStage;
+
+    private PantallaCocina pantallaCocina;
+    private PantallaExterna pantallaExterna;
+    private ControladorGeneral controlador;
+
+    @Override
+    public void start(Stage primaryStage) {
+        this.primaryStage = primaryStage;
+        primaryStage.setTitle("PizzaFactory POS System");
+
+        this.pantallaCocina = new PantallaCocina(this);
+        this.pantallaExterna = new PantallaExterna(this);
+
+        // Inicialización del Controlador
+        this.controlador = new ControladorGeneral(pantallaCocina, pantallaExterna);
+
+        initRootLayout();
+        mostrarMenuPrincipal();
+    }
+
+    private void initRootLayout() {
+        rootLayout = new BorderPane();
+        
+        HBox header = new HBox(20);
+        header.setStyle("-fx-background-color: #0f192b; -fx-padding: 15; -fx-border-color: #23395d; -fx-border-width: 0 0 2 0;");
+        header.setAlignment(Pos.CENTER_LEFT);
+
+        Label logoLbl = new Label("pizzaFactory"); 
+        logoLbl.setStyle("-fx-font-family: 'Century Gothic'; -fx-font-weight: bold; -fx-font-size: 28px; -fx-text-fill: white;");
+        
+        Label welcomeLbl = new Label("| Bienvenido, isaizurita ");
+        welcomeLbl.setStyle("-fx-text-fill: #a0a0a0; -fx-font-family: 'Verdana'; -fx-font-size: 14px;");
+
+        // Reloj
+        Label clockLbl = new Label();
+        clockLbl.setStyle("-fx-text-fill: #a0a0a0; -fx-font-family: 'Verdana'; -fx-font-size: 14px;");
+        
+        Timeline clock = new Timeline(new KeyFrame(Duration.seconds(1), e -> {
+            clockLbl.setText(LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss")));
+        }));
+        clock.setCycleCount(Animation.INDEFINITE);
+        clock.play();
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        header.getChildren().addAll(logoLbl, welcomeLbl, spacer, clockLbl);
+        rootLayout.setTop(header);
+
+        Scene scene = new Scene(rootLayout, 1000, 700);
+        try {
+            if (getClass().getResource("/style.css") != null)
+                scene.getStylesheets().add(getClass().getResource("/style.css").toExternalForm());
+        } catch (Exception e) { }
+        
+        primaryStage.setScene(scene);
+        primaryStage.show();
+    }
+
+    public void mostrarMenuPrincipal() {
+        VBox menuView = new VBox(40);
+        menuView.setAlignment(Pos.CENTER);
+        menuView.setStyle("-fx-padding: 50; -fx-background-color: #0f192b;");
+
+        // Logo
+        try {
+            Image imgLogo = new Image(getClass().getResourceAsStream("/imagenes/logo_pizza.jpg"));
+            ImageView imgView = new ImageView(imgLogo);
+            imgView.setFitHeight(220); 
+            imgView.setPreserveRatio(true);
+            Rectangle clip = new Rectangle(220, 220); 
+            clip.setArcWidth(30); clip.setArcHeight(30);
+            imgView.setClip(clip);
+            imgView.setEffect(new DropShadow(30, Color.BLACK));
+            menuView.getChildren().add(imgView);
+        } catch (Exception e) {
+            Label lblTitulo = new Label("PIZZA FACTORY");
+            lblTitulo.setStyle("-fx-font-family: 'Impact'; -fx-font-size: 60px; -fx-text-fill: white;");
+            menuView.getChildren().add(lblTitulo);
+        }
+
+        HBox buttonsContainer = new HBox(40); 
+        buttonsContainer.setAlignment(Pos.CENTER);
+
+        Button btnOrden = crearBotonMenu("NUEVA\nORDEN");
+        btnOrden.setOnAction(e -> mostrarNuevaOrden());
+
+        Button btnCocina = crearBotonMenu("PANTALLA\nCOCINA");
+        btnCocina.setOnAction(e -> mostrarCocina());
+
+        Button btnCliente = crearBotonMenu("PANTALLA\nEXTERNA");
+        btnCliente.setOnAction(e -> mostrarPantallaExterna());
+
+        buttonsContainer.getChildren().addAll(btnOrden, btnCocina, btnCliente);
+        menuView.getChildren().add(buttonsContainer);
+
+        rootLayout.setCenter(menuView);
+    }
+
+    private Button crearBotonMenu(String texto) {
+        Button btn = new Button(texto);
+        btn.setTextAlignment(TextAlignment.CENTER);
+        String estiloNormal = "-fx-background-color: #203354; -fx-text-fill: white; -fx-font-family: 'Verdana'; -fx-font-size: 18px; -fx-font-weight: bold; -fx-background-radius: 15; -fx-border-color: #2e4a7d; -fx-border-radius: 15; -fx-border-width: 1; -fx-cursor: hand;";
+        btn.setStyle(estiloNormal);
+        btn.setPrefSize(220, 180); 
+        btn.setEffect(new DropShadow(15, Color.rgb(0, 0, 0, 0.4)));
+
+        btn.setOnMouseEntered(e -> {
+            btn.setStyle("-fx-background-color: #23395d; -fx-text-fill: white; -fx-font-family: 'Verdana'; -fx-font-size: 19px; -fx-font-weight: bold; -fx-background-radius: 15; -fx-border-color: #FFA500; -fx-border-radius: 15; -fx-border-width: 3; -fx-cursor: hand;");
+            btn.setEffect(new DropShadow(25, Color.rgb(255, 165, 0, 0.5))); 
+        });
+        btn.setOnMouseExited(e -> {
+            btn.setStyle(estiloNormal);
+            btn.setEffect(new DropShadow(15, Color.rgb(0, 0, 0, 0.4)));
+        });
+        return btn;
+    }
+
+    public void mostrarNuevaOrden() {
+        // Creamos la pantalla de captura nueva inyectándole el controlador (inyección de instancias)
+        PantallaCaptura orderView = new PantallaCaptura(this, controlador);
+        rootLayout.setCenter(orderView.getView());
+    }
+
+    public void mostrarCocina() {
+        rootLayout.setCenter(pantallaCocina.getView());
+    }
+
+    public void mostrarPantallaExterna() {
+        rootLayout.setCenter(pantallaExterna.getView());
+    }
+
+    public static void main(String[] args) {
+        launch(args);
+    }
+}
+
+package vista;
+
+import javafx.application.Platform;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
+import javafx.scene.layout.*;
+import javafx.scene.paint.Color;
+
+public class PantallaCocina {
+    private PantallaMenu app;
+    private BorderPane view;
+    private VBox kanbanBoard;
+
+    public PantallaCocina(PantallaMenu app){
+        this.app = app;
+        crearInterfaz();
+    }
+
+    private void crearInterfaz() {
+        view = new BorderPane();
+        view.setStyle("-fx-background-color: #0f192b;");
+        
+        HBox header = new HBox(20);
+        header.setPadding(new Insets(20));
+        header.setAlignment(Pos.CENTER_LEFT);
+        
+        Button btnBack = new Button("⬅ Volver");
+        btnBack.setStyle("-fx-background-color: #FFA500; -fx-text-fill: #152238; -fx-font-weight: bold; -fx-background-radius: 20;");
+        btnBack.setOnAction(e -> app.mostrarMenuPrincipal());
+
+        Label title = new Label("MONITOR DE COCINA");
+        title.setStyle("-fx-text-fill: white; -fx-font-family: 'Verdana'; -fx-font-size: 24px; -fx-font-weight: bold;");
+        
+        header.getChildren().addAll(btnBack, title);
+        view.setTop(header);
+
+        kanbanBoard = new VBox(15);
+        kanbanBoard.setPadding(new Insets(20));
+        
+        ScrollPane scroll = new ScrollPane(kanbanBoard);
+        scroll.setFitToWidth(true);
+        scroll.setStyle("-fx-background: transparent; -fx-background-color: transparent;"); 
+        
+        view.setCenter(scroll);
+    }
+
+    public void actualizarTarjeta(String idOrden, String descripcion, String estado) {
+        String color = "#FFA500"; 
+        if(estado.equalsIgnoreCase("Horneando")) color = "#d9534f";
+        if(estado.equalsIgnoreCase("Listo para Entrega")) color = "#28a745";
+        
+        // Si ya se entregó la orden, la quitamos de la pantalla de cocina
+        if(estado.equalsIgnoreCase("Entregado")) {
+            Platform.runLater(() -> eliminarTarjeta(idOrden));
+            return;
+        }
+
+        String finalColor = color;
+
+        Platform.runLater(() -> {
+            eliminarTarjeta(idOrden);
+            agregarTicketVisual(idOrden, descripcion, estado, finalColor);
+        });
+    }
+
+    private void eliminarTarjeta(String idOrden) {
+        kanbanBoard.getChildren().removeIf(node -> 
+            idOrden.equals(node.getUserData())
+        );
+    }
+
+    private void agregarTicketVisual(String idOrden, String descripcion, String estado, String colorHex) {
+        String titulo = "ORDEN " + idOrden;
+        
+        VBox ticket = new VBox(10);
+        ticket.setPrefWidth(260);
+        ticket.setPadding(new Insets(15));
+        ticket.setStyle("-fx-background-color: white; -fx-background-radius: 10; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 10, 0, 0, 0);");
+        
+        ticket.setUserData(idOrden); 
+
+        Region colorBar = new Region();
+        colorBar.setPrefHeight(8);
+        colorBar.setStyle("-fx-background-color: " + colorHex + "; -fx-background-radius: 5 5 0 0;");
+
+        Label lblTitulo = new Label(titulo);
+        lblTitulo.setStyle("-fx-font-family: 'Verdana'; -fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #152238;");
+        
+        Label lblDetalle = new Label(descripcion);
+        lblDetalle.setWrapText(true);
+        lblDetalle.setStyle("-fx-font-family: 'Verdana'; -fx-text-fill: #333; -fx-font-size: 12px;"); 
+        
+        Label lblEstado = new Label(estado.toUpperCase());
+        lblEstado.setStyle("-fx-background-color: " + colorHex + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 8; -fx-background-radius: 5; -fx-alignment: center;");
+        lblEstado.setMaxWidth(Double.MAX_VALUE);
+        lblEstado.setAlignment(Pos.CENTER);
+        
+        ticket.getChildren().addAll(colorBar, lblTitulo, new javafx.scene.control.Separator(), lblDetalle, new Region(), lblEstado);
+        
+        // Agregamos al principio de la lista
+        kanbanBoard.getChildren().add(0, ticket);
+    }
+
+    public Pane getView() { return view; }
+}
+
+package vista;
+
+import javafx.application.Platform;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
+import javafx.scene.control.SplitPane;
+import javafx.scene.layout.*;
+import javafx.scene.control.Button;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+
+public class PantallaExterna {
+    private PantallaMenu app;
+    private SplitPane view;
+    
+    private FlowPane contenedorListos;
+    private FlowPane contenedorCocinando;
+
+    public PantallaExterna(PantallaMenu app) {
+        this.app = app;
+        crearInterfaz();
+    }
+
+    private void crearInterfaz() {
+        view = new SplitPane();
+        
+        VBox leftPane = new VBox(30); 
+        leftPane.setAlignment(Pos.CENTER);
+        leftPane.setStyle("-fx-background-color: #0f192b;");
+
+        try {
+            Image imgLogo = new Image(getClass().getResourceAsStream("/imagenes/logo_pizza.jpg"));
+            ImageView imgView = new ImageView(imgLogo);
+            imgView.setFitWidth(300); imgView.setPreserveRatio(true);
+            leftPane.getChildren().add(imgView);
+        } catch (Exception e) {
+            Label placeholder = new Label("PizzaFactory");
+            placeholder.setStyle("-fx-text-fill: white; -fx-font-size: 30px; -fx-font-weight: bold;");
+            leftPane.getChildren().add(placeholder);
+        }
+
+        Button btnVolver = new Button("⬅ Volver");
+        btnVolver.setStyle("-fx-background-color: #FFA500; -fx-text-fill: #152238; -fx-font-weight: bold; -fx-background-radius: 25;");
+        btnVolver.setOnAction(e -> app.mostrarMenuPrincipal());
+        leftPane.getChildren().add(btnVolver);
+
+        VBox rightPane = new VBox();
+        rightPane.setStyle("-fx-background-color: #eef2f5;"); 
+        
+        HBox headerList = new HBox();
+        headerList.setStyle("-fx-background-color: #23395d; -fx-padding: 20;");
+        headerList.setAlignment(Pos.CENTER);
+        Label statusTitle = new Label("ESTADO DE ÓRDENES");
+        statusTitle.setStyle("-fx-text-fill: white; -fx-font-size: 32px; -fx-font-weight: bold; -fx-font-family: 'Verdana';");
+        headerList.getChildren().add(statusTitle);
+
+        VBox statusContent = new VBox(40); 
+        statusContent.setPadding(new Insets(30));
+        
+        contenedorListos = new FlowPane(); 
+        contenedorListos.setHgap(20); contenedorListos.setVgap(20);
+        
+        contenedorCocinando = new FlowPane();
+        contenedorCocinando.setHgap(20); contenedorCocinando.setVgap(20);
+
+        statusContent.getChildren().add(crearSeccionEstructura("¡LISTAS PARA RECOGER!", "#28a745", contenedorListos));
+        statusContent.getChildren().add(crearSeccionEstructura("COCINANDO", "#152238", contenedorCocinando));
+        
+        ScrollPane scroll = new ScrollPane(statusContent);
+        scroll.setFitToWidth(true);
+        scroll.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
+
+        rightPane.getChildren().addAll(headerList, scroll);
+        view.getItems().addAll(leftPane, rightPane);
+        view.setDividerPositions(0.35); 
+    }
+
+    private VBox crearSeccionEstructura(String titulo, String color, FlowPane contenedor) {
+        VBox seccion = new VBox(15);
+        Label lblTitulo = new Label(titulo);
+        lblTitulo.setStyle("-fx-font-size: 36px; -fx-font-weight: bold; -fx-text-fill: " + color + "; -fx-font-family: 'Verdana';");
+        seccion.getChildren().addAll(lblTitulo, contenedor);
+        return seccion;
+    }
+
+    public void actualizarEstadoOrden(String idOrden, String descripcion, String estado) {
+        Platform.runLater(() -> {
+            contenedorListos.getChildren().removeIf(node -> idOrden.equals(node.getUserData()));
+            contenedorCocinando.getChildren().removeIf(node -> idOrden.equals(node.getUserData()));
+
+            if (estado.equalsIgnoreCase("Entregado")) {
+                return;
+            }
+
+            StackPane tarjeta = crearTarjetaOrden(idOrden, estado);
+            
+            tarjeta.setUserData(idOrden);
+
+            if (estado.equalsIgnoreCase("Listo para Entrega")) {
+                contenedorListos.getChildren().add(tarjeta);
+            } else {
+                contenedorCocinando.getChildren().add(tarjeta);
+            }
+        });
+    }
+
+    private StackPane crearTarjetaOrden(String texto, String estado) {
+        StackPane tarjeta = new StackPane();
+        tarjeta.setPrefSize(180, 100); 
+        
+        String color = "#152238";
+        boolean relleno = false;
+        
+        if(estado.equalsIgnoreCase("Listo para Entrega")) {
+            color = "#28a745";
+            relleno = true;
+        }
+
+        Label lbl = new Label(texto); 
+        lbl.setWrapText(true);
+        lbl.setTextAlignment(javafx.scene.text.TextAlignment.CENTER);
+        
+        if (relleno) {
+            tarjeta.setStyle("-fx-background-color: " + color + "; -fx-background-radius: 15; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.4), 10, 0, 0, 5);");
+            lbl.setStyle("-fx-text-fill: white; -fx-font-size: 36px; -fx-font-weight: bold; -fx-font-family: 'Verdana';");
+        } else {
+            tarjeta.setStyle("-fx-background-color: white; -fx-border-color: " + color + "; -fx-border-width: 3; -fx-background-radius: 15; -fx-border-radius: 15;");
+            lbl.setStyle("-fx-text-fill: " + color + "; -fx-font-size: 42px; -fx-font-weight: bold; -fx-font-family: 'Verdana';");
+        }
+        tarjeta.getChildren().add(lbl);
+        return tarjeta;
+    }
+
+    public SplitPane getView() { return view; }
+}
+
+package vista;
 
 /**
- * Interface para los observadores que desean recibir notificaciones del pedido.
- * Parte del patrón Observer.
+ * Define el contrato para las pantallas que deben reaccionar a cambios en los pedidos.
+ * Implementación del patrón Observer (lado del Suscriptor).
  */
-public interface Observador 
-    {
-        void actualizar(String estado, String descripcionPedido);
+public interface Observador {
+
+    /**
+     * Se ejecuta automáticamente cuando un Pedido cambia de estado en el Modelo.
+     * @param idOrden      El número de orden
+     * @param estado       El estado al que cambió
+     * @param detalles     Descripción de la pizza
+     */
+    void actualizar(String idOrden, String estado, String detalles);
+}
+
+package vista;
+
+import controlador.ControladorGeneral;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.Node; 
+import javafx.scene.control.*;
+import javafx.scene.effect.DropShadow;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.layout.*;
+import javafx.scene.paint.Color;
+import javafx.scene.text.TextAlignment;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import javafx.animation.PauseTransition;
+import javafx.util.Duration;
+
+public class PantallaCaptura {
+    private PantallaMenu app;
+    private ControladorGeneral controlador;
+    private BorderPane view;
+    private VBox ticketLayout;
+    private Label totalLabel;
+    
+    private double costoBase = 100.00;
+    private double costoExtras = 0.00;
+
+    private TextField txtNombreCliente;
+    private Label lblNumeroOrden;
+    private String currentOrderId;
+    private static int contadorOrdenes = 100;
+
+    private String selMasa = "Tradicional";
+    private String selSalsa = "Tomate";
+    private String selQueso = "Mozzarella";
+    private String selOrilla = "Normal";
+    private List<String> selIngredientes = new ArrayList<>();
+
+    public PantallaCaptura(PantallaMenu app, ControladorGeneral controlador) {
+        this.app = app;
+        this.controlador = controlador;
+        this.currentOrderId = "" + contadorOrdenes;
+        contadorOrdenes++;
+        crearInterfaz();
     }
+
+    private void crearInterfaz() {
+        view = new BorderPane();
+        view.setStyle("-fx-background-color: #0f192b; -fx-padding: 20;");
+
+        txtNombreCliente = new TextField();
+        txtNombreCliente.setPromptText("Ingrese nombre...");
+        txtNombreCliente.setPrefWidth(250);
+        txtNombreCliente.setStyle("-fx-font-family: 'Verdana'; -fx-font-size: 14px; -fx-background-radius: 10; -fx-background-color: white; -fx-text-fill: #152238;");
+
+        view.setRight(crearPanelTicket());
+
+        HBox topBar = new HBox(20);
+        topBar.setPadding(new Insets(0, 0, 10, 0));
+        topBar.setAlignment(Pos.CENTER_LEFT);
+        Label lblNombre = new Label("Nombre Cliente:");
+        lblNombre.setStyle("-fx-font-family: 'Verdana'; -fx-font-size: 16px; -fx-text-fill: white; -fx-font-weight: bold;");
+        lblNumeroOrden = new Label("Número de orden: " + currentOrderId);
+        lblNumeroOrden.setStyle("-fx-font-family: 'Verdana'; -fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #FFA500;");
+
+        topBar.getChildren().addAll(lblNombre, txtNombreCliente, new Separator(), lblNumeroOrden);
+        view.setTop(topBar);
+
+        VBox mainContent = new VBox(30); 
+        mainContent.setPadding(new Insets(0, 20, 20, 0));
+        mainContent.setStyle("-fx-background-color: transparent;");
+
+        mainContent.getChildren().add(crearSeccionSimple("TIPO DE MASA", new String[]{"Tradicional", "Crujiente", "Sarten", "Delgada"}, "Masa"));
+        mainContent.getChildren().add(crearSeccionSimple("SALSA BASE", new String[]{"Tomate", "BBQ", "Ranch", "Picante"}, "Salsa"));
+        mainContent.getChildren().add(crearSeccionSimple("QUESOS", new String[]{"Mozzarella", "Parmesano", "Cheddar", "Sin Queso"}, "Queso"));
+        mainContent.getChildren().add(crearSeccionSimple("ORILLA", new String[]{"Normal", "Rellena de Queso", "Sin Orilla"}, "Orilla"));
+        mainContent.getChildren().add(crearSeccionIngredientesConImagenes());
+
+        ScrollPane scrollPane = new ScrollPane(mainContent);
+        scrollPane.setFitToWidth(true);
+        scrollPane.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
+        view.setCenter(scrollPane);
+    }
+
+    private VBox crearSeccionSimple(String titulo, String[] items, String categoria) {
+        VBox seccion = new VBox(10);
+        Label lblTitulo = new Label(titulo);
+        lblTitulo.setStyle("-fx-font-family: 'Verdana'; -fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #FFA500;");
+        
+        FlowPane flow = new FlowPane();
+        flow.setHgap(15); flow.setVgap(15);
+        ToggleGroup group = new ToggleGroup();
+
+        for (String item : items) {
+            ToggleButton btn = crearBotonOpcionSimple(item);
+            btn.setToggleGroup(group);
+            
+            btn.setOnAction(e -> {
+                actualizarTicketUnico(categoria, item);
+                actualizarEstiloBotonSimple(btn);
+            });
+            btn.selectedProperty().addListener((obs, old, isSelected) -> actualizarEstiloBotonSimple(btn));
+            
+            if (item.equalsIgnoreCase(items[0])) {
+                btn.setSelected(true);
+                if(categoria.equals("Masa")) selMasa = item;
+                if(categoria.equals("Salsa")) selSalsa = item;
+                if(categoria.equals("Queso")) selQueso = item;
+                if(categoria.equals("Orilla")) selOrilla = item;
+            }
+            flow.getChildren().add(btn);
+        }
+        seccion.getChildren().addAll(lblTitulo, flow);
+        return seccion;
+    }
+
+    private VBox crearSeccionIngredientesConImagenes() {
+        VBox seccion = new VBox(15);
+        Label lblTitulo = new Label("INGREDIENTES EXTRA");
+        lblTitulo.setStyle("-fx-font-family: 'Verdana'; -fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #FFA500;");
+        
+        FlowPane flow = new FlowPane();
+        flow.setHgap(20); flow.setVgap(20);
+
+        String[][] dataIngredientes = {
+            {"Pepperoni", "15", "pepperoni.png"},
+            {"Jamón", "15", "jamon.png"},
+            {"Tocino", "20", "tocino.png"},
+            {"Salchicha", "15", "salchicha.png"},
+            {"Pimientos", "10", "pimientoVerde.png"},
+            {"Champiñones", "12", "champinon.png"},
+            {"Albahaca", "12", "albahacar.png"},
+            {"Aceitunas", "12", "aceitunasNegras.png"},
+            {"Cebolla", "10", "cebolla.png"},
+            {"Maíz", "10", "maiz.png"},
+            {"Queso Extra", "25", "parmesano.png"}
+        };
+
+        for (String[] data : dataIngredientes) {
+            ToggleButton btn = crearTarjetaIngrediente(data[0], Double.parseDouble(data[1]), data[2]);
+            btn.setOnAction(e -> {
+                actualizarTicketIngrediente(data[0], Double.parseDouble(data[1]), btn.isSelected());
+                actualizarEstiloTarjeta(btn);
+            });
+            flow.getChildren().add(btn);
+        }
+        seccion.getChildren().addAll(lblTitulo, flow);
+        return seccion;
+    }
+
+    private ToggleButton crearBotonOpcionSimple(String texto) {
+        ToggleButton btn = new ToggleButton(texto);
+        btn.setPrefSize(140, 50);
+        actualizarEstiloBotonSimple(btn);
+        return btn;
+    }
+
+    private void actualizarEstiloBotonSimple(ToggleButton btn) {
+        String base = "-fx-font-family: 'Verdana'; -fx-font-size: 14px; -fx-font-weight: bold; -fx-background-radius: 25; -fx-cursor: hand;";
+        if (btn.isSelected()) {
+            btn.setStyle(base + "-fx-background-color: #FFA500; -fx-text-fill: #152238; -fx-effect: dropshadow(three-pass-box, rgba(255,165,0,0.5), 10, 0, 0, 0);");
+        } else {
+            btn.setStyle(base + "-fx-background-color: #203354; -fx-text-fill: white; -fx-border-color: #2e4a7d; -fx-border-radius: 25;");
+        }
+    }
+
+    private ToggleButton crearTarjetaIngrediente(String nombre, double precio, String imgFileName) {
+        ToggleButton btn = new ToggleButton();
+        btn.setPrefSize(140, 160); 
+        btn.setContentDisplay(ContentDisplay.TOP); 
+        
+        VBox layout = new VBox(5);
+        layout.setAlignment(Pos.CENTER);
+        Node graphicNode;
+        try {
+            Image img = new Image(getClass().getResourceAsStream("/imagenes/" + imgFileName));
+            ImageView imgView = new ImageView(img);
+            imgView.setFitWidth(70); imgView.setFitHeight(70); imgView.setPreserveRatio(true);
+            graphicNode = imgView;
+        } catch (Exception e) {
+            Label lblNoImg = new Label("?");
+            lblNoImg.setStyle("-fx-text-fill: gray; -fx-font-size: 40px;");
+            graphicNode = lblNoImg;
+        }
+        Label lblNombre = new Label(nombre);
+        lblNombre.setStyle("-fx-font-family: 'Verdana'; -fx-font-weight: bold; -fx-font-size: 13px; -fx-text-fill: inherit;");
+        Label lblPrecio = new Label("+$" + String.format("%.2f", precio));
+        lblPrecio.setStyle("-fx-font-family: 'Verdana'; -fx-font-size: 12px; -fx-text-fill: #a0a0a0;"); 
+
+        layout.getChildren().addAll(graphicNode, lblNombre, lblPrecio);
+        btn.setGraphic(layout);
+        actualizarEstiloTarjeta(btn);
+        return btn;
+    }
+
+    private void actualizarEstiloTarjeta(ToggleButton btn) {
+        VBox layout = (VBox) btn.getGraphic();
+        if (layout.getChildren().size() >= 3) {
+            Label lblNombre = (Label) layout.getChildren().get(1);
+            if (btn.isSelected()) {
+                btn.setStyle("-fx-background-color: #23395d; -fx-border-color: #FFA500; -fx-border-width: 3; -fx-border-radius: 15; -fx-background-radius: 15;");
+                lblNombre.setStyle("-fx-text-fill: #FFA500; -fx-font-weight: bold;");
+            } else {
+                btn.setStyle("-fx-background-color: #203354; -fx-border-color: transparent; -fx-background-radius: 15;");
+                lblNombre.setStyle("-fx-text-fill: white; -fx-font-weight: bold;");
+            }
+        }
+    }
+
+    private Node crearPanelTicket() {
+        VBox ticketPanel = new VBox(15);
+        ticketPanel.setPadding(new Insets(20));
+        ticketPanel.setPrefWidth(340); 
+        ticketPanel.setStyle("-fx-background-color: #f4f4f4; -fx-background-radius: 10;");
+
+        Label tituloTicket = new Label("RESUMEN DE ORDEN");
+        tituloTicket.setStyle("-fx-font-family: 'Verdana'; -fx-font-weight: bold; -fx-font-size: 18px; -fx-text-fill: #152238;");
+        Label lblClienteTicket = new Label("Cliente: ---");
+        lblClienteTicket.textProperty().bind(javafx.beans.binding.Bindings.concat("Cliente: ", txtNombreCliente.textProperty()));
+
+        ticketLayout = new VBox(8); 
+        totalLabel = new Label("TOTAL: $100.00");
+        totalLabel.setStyle("-fx-font-family: 'Verdana'; -fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #152238;");
+
+        Button btnPagar = new Button("COBRAR"); 
+        btnPagar.setStyle("-fx-background-color: #FFA500; -fx-text-fill: #152238; -fx-font-weight: bold; -fx-font-size: 14px; -fx-background-radius: 20;");
+        btnPagar.setMaxWidth(Double.MAX_VALUE);
+        btnPagar.setOnAction(e -> mostrarModalPago());
+
+        Button btnCancelar = new Button("Cancelar Orden"); 
+        btnCancelar.setStyle("-fx-background-color: #d9534f; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 14px; -fx-background-radius: 20;");
+        btnCancelar.setMaxWidth(Double.MAX_VALUE);
+        btnCancelar.setOnAction(e -> app.mostrarMenuPrincipal());
+
+        ticketPanel.getChildren().addAll(tituloTicket, lblClienteTicket, new Separator(), ticketLayout, new Separator(), totalLabel, btnPagar, btnCancelar);
+        return new HBox(ticketPanel);
+    }
+
+    private void actualizarTicketUnico(String categoria, String item) {
+        if(categoria.equals("Masa")) selMasa = item;
+        if(categoria.equals("Salsa")) selSalsa = item;
+        if(categoria.equals("Queso")) selQueso = item;
+        if(categoria.equals("Orilla")) selOrilla = item;
+
+        if (ticketLayout == null) return;
+        ticketLayout.getChildren().removeIf(node -> node instanceof Label && ((Label)node).getText().startsWith(categoria + ":"));
+        Label l = new Label(categoria + ": " + item);
+        l.setStyle("-fx-font-family: 'Verdana'; -fx-text-fill: #333;");
+        ticketLayout.getChildren().add(0, l); 
+    }
+
+    private void actualizarTicketIngrediente(String item, double precio, boolean agregando) {
+        String textoItem = "+ " + item + " ($" + precio + ")";
+        if (agregando) {
+            selIngredientes.add(item);
+            costoExtras += precio;
+            Label l = new Label(textoItem);
+            l.setStyle("-fx-font-family: 'Verdana'; -fx-text-fill: #333;");
+            ticketLayout.getChildren().add(l);
+        } else {
+            selIngredientes.remove(item);
+            costoExtras -= precio;
+            ticketLayout.getChildren().removeIf(node -> ((Label)node).getText().equals(textoItem));
+        }
+        actualizarTotal();
+    }
+
+    private void actualizarTotal() {
+        double total = costoBase + costoExtras;
+        totalLabel.setText("TOTAL: $" + String.format("%.2f", total));
+    }
+
+    private void mostrarModalPago() {
+        if(txtNombreCliente.getText().isEmpty()) {
+            mostrarAlertaError("Faltan datos", "Ingrese el nombre del cliente.");
+            return;
+        }
+        Dialog<ButtonType> dialog = new Dialog<>();
+        dialog.setTitle("Procesar Pago");
+        dialog.setHeaderText("Total a Pagar: " + totalLabel.getText().replace("TOTAL: ", ""));
+        
+        ButtonType btnEfectivo = new ButtonType("Efectivo", ButtonBar.ButtonData.LEFT);
+        ButtonType btnTarjeta = new ButtonType("Tarjeta", ButtonBar.ButtonData.LEFT);
+        ButtonType btnCancelar = new ButtonType("Cancelar", ButtonBar.ButtonData.CANCEL_CLOSE);
+        dialog.getDialogPane().getButtonTypes().addAll(btnEfectivo, btnTarjeta, btnCancelar);
+        
+        Optional<ButtonType> result = dialog.showAndWait();
+        if (result.isPresent()) {
+            if (result.get() == btnEfectivo) simularPagoEfectivo();
+            else if (result.get() == btnTarjeta) simularPagoTarjeta();
+        }
+    }
+
+    private void simularPagoEfectivo() {
+        TextInputDialog td = new TextInputDialog();
+        td.setTitle("Pago en Efectivo");
+        td.setHeaderText("Ingrese monto recibido:");
+        td.showAndWait().ifPresent(montoStr -> {
+            try {
+                double monto = Double.parseDouble(montoStr);
+                // PASAMOS EL ID AL CONTROLADOR
+                boolean exito = controlador.procesarNuevaOrden(
+                    currentOrderId,
+                    txtNombreCliente.getText(), selMasa, selSalsa, selQueso, selOrilla, selIngredientes,
+                    "EFECTIVO", monto
+                );
+
+                if (exito) mostrarExitoOrden();
+                else mostrarAlertaError("Pago rechazado", "Monto insuficiente o error de sistema.");
+
+            } catch (NumberFormatException e) {
+                mostrarAlertaError("Error", "Ingrese un número válido");
+            }
+        });
+    }
+
+    private void simularPagoTarjeta() {
+        // Configuración de la ventana de carga del paog
+        Alert processing = new Alert(Alert.AlertType.NONE);
+        processing.setTitle("Terminal Bancaria");
+        processing.setHeaderText("Conectando con el Servicio Bancario...");
+        
+        // Botón de seguridad
+        ButtonType btnCancelar = new ButtonType("Cancelar", ButtonBar.ButtonData.CANCEL_CLOSE);
+        processing.getDialogPane().getButtonTypes().add(btnCancelar);
+        
+        ProgressBar pb = new ProgressBar(); 
+        pb.setProgress(-1); 
+        
+        VBox content = new VBox(10, new Label("Validando fondos y seguridad..."), pb);
+        content.setStyle("-fx-padding: 10;");
+        processing.getDialogPane().setContent(content);
+        
+        processing.show();
+
+        // Simulamos el tiempo de espera del banco
+        javafx.animation.PauseTransition pause = new javafx.animation.PauseTransition(javafx.util.Duration.seconds(1));
+        
+        pause.setOnFinished(e -> {
+            processing.setResult(btnCancelar);
+            processing.close();
+
+            javafx.application.Platform.runLater(() -> {
+                boolean exito = false;
+                try {
+                    exito = controlador.procesarNuevaOrden(
+                        currentOrderId,
+                        txtNombreCliente.getText(), selMasa, selSalsa, selQueso, selOrilla, selIngredientes,
+                        "TARJETA", 0.0
+                    );
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+
+                if (exito) {
+                    mostrarExitoOrden(); // Esto muestra la alerta de éxito y regresa al menú
+                } else {
+                    mostrarAlertaError("Transacción Fallida", "La tarjeta fue rechazada por el banco.");
+                }
+            });
+        });
+        
+        pause.play();
+    }
+    
+    private void mostrarExitoOrden() {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle("Orden Enviada");
+        alert.setHeaderText("¡Éxito!");
+        alert.setContentText("Orden enviada a cocina.");
+        alert.showAndWait();
+        app.mostrarMenuPrincipal();
+    }
+
+    private void mostrarAlertaError(String titulo, String contenido) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle(titulo);
+        alert.setContentText(contenido);
+        alert.showAndWait();
+    }
+
+    public Pane getView() { return view; }
+}
 

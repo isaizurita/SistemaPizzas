@@ -1,5 +1,6 @@
 package vista;
 
+import controlador.ControladorGeneral;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node; 
@@ -10,26 +11,36 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.text.TextAlignment;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
+import javafx.animation.PauseTransition;
+import javafx.util.Duration;
 
 public class PantallaCaptura {
     private PantallaMenu app;
+    private ControladorGeneral controlador;
     private BorderPane view;
     private VBox ticketLayout;
     private Label totalLabel;
     
-    // Variables para calcular total real de la órden en cuestión
     private double costoBase = 100.00;
     private double costoExtras = 0.00;
 
-    // Datos de la orden actual
     private TextField txtNombreCliente;
     private Label lblNumeroOrden;
     private String currentOrderId;
     private static int contadorOrdenes = 100;
 
-    public PantallaCaptura(PantallaMenu app) {
+    private String selMasa = "Tradicional";
+    private String selSalsa = "Tomate";
+    private String selQueso = "Mozzarella";
+    private String selOrilla = "Normal";
+    private List<String> selIngredientes = new ArrayList<>();
+
+    public PantallaCaptura(PantallaMenu app, ControladorGeneral controlador) {
         this.app = app;
+        this.controlador = controlador;
         this.currentOrderId = "" + contadorOrdenes;
         contadorOrdenes++;
         crearInterfaz();
@@ -39,63 +50,47 @@ public class PantallaCaptura {
         view = new BorderPane();
         view.setStyle("-fx-background-color: #0f192b; -fx-padding: 20;");
 
-        // Inicializamods los controles independientes
         txtNombreCliente = new TextField();
         txtNombreCliente.setPromptText("Ingrese nombre...");
         txtNombreCliente.setPrefWidth(250);
         txtNombreCliente.setStyle("-fx-font-family: 'Verdana'; -fx-font-size: 14px; -fx-background-radius: 10; -fx-background-color: white; -fx-text-fill: #152238;");
 
-        // Creación del ticket
-        // Ahora sí podemos crear el panel derecho, porque txtNombreCliente ya existe
         view.setRight(crearPanelTicket());
 
-        // Datos del cliente
         HBox topBar = new HBox(20);
         topBar.setPadding(new Insets(0, 0, 10, 0));
         topBar.setAlignment(Pos.CENTER_LEFT);
-
         Label lblNombre = new Label("Nombre Cliente:");
         lblNombre.setStyle("-fx-font-family: 'Verdana'; -fx-font-size: 16px; -fx-text-fill: white; -fx-font-weight: bold;");
-
         lblNumeroOrden = new Label("Número de orden: " + currentOrderId);
         lblNumeroOrden.setStyle("-fx-font-family: 'Verdana'; -fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #FFA500;");
 
         topBar.getChildren().addAll(lblNombre, txtNombreCliente, new Separator(), lblNumeroOrden);
         view.setTop(topBar);
 
-        // Scroll con todas las secciones
         VBox mainContent = new VBox(30); 
         mainContent.setPadding(new Insets(0, 20, 20, 0));
         mainContent.setStyle("-fx-background-color: transparent;");
 
-        mainContent.getChildren().add(crearSeccionSimple("TIPO DE MASA", new String[]{"Tradicional", "Crujiente", "Sartén"}, "Masa"));
-        mainContent.getChildren().add(crearSeccionSimple("SALSA BASE", new String[]{"Tomate", "BBQ", "Ranch"}, "Salsa"));
-        mainContent.getChildren().add(crearSeccionSimple("QUESOS", new String[]{"Mozzarella", "Fontina", "Sin Queso"}, "Queso"));
+        mainContent.getChildren().add(crearSeccionSimple("TIPO DE MASA", new String[]{"Tradicional", "Crujiente", "Sarten", "Delgada"}, "Masa"));
+        mainContent.getChildren().add(crearSeccionSimple("SALSA BASE", new String[]{"Tomate", "BBQ", "Ranch", "Picante"}, "Salsa"));
+        mainContent.getChildren().add(crearSeccionSimple("QUESOS", new String[]{"Mozzarella", "Parmesano", "Cheddar", "Sin Queso"}, "Queso"));
+        mainContent.getChildren().add(crearSeccionSimple("ORILLA", new String[]{"Normal", "Rellena de Queso", "Sin Orilla"}, "Orilla"));
         mainContent.getChildren().add(crearSeccionIngredientesConImagenes());
 
         ScrollPane scrollPane = new ScrollPane(mainContent);
         scrollPane.setFitToWidth(true);
         scrollPane.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
-        try {
-            if (getClass().getResource("/style.css") != null) {
-                scrollPane.getStylesheets().add(getClass().getResource("/style.css").toExternalForm());
-            }
-        } catch (Exception e) {}
-        
         view.setCenter(scrollPane);
     }
-
-    // Métodos para crear las diversas secciiones contenidas en el panel de crear orden
 
     private VBox crearSeccionSimple(String titulo, String[] items, String categoria) {
         VBox seccion = new VBox(10);
         Label lblTitulo = new Label(titulo);
-        lblTitulo.setStyle("-fx-font-family: 'Verdana'; -fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #FFA500; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 5, 0, 0, 1);");
+        lblTitulo.setStyle("-fx-font-family: 'Verdana'; -fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #FFA500;");
         
         FlowPane flow = new FlowPane();
-        flow.setHgap(15);
-        flow.setVgap(15);
-
+        flow.setHgap(15); flow.setVgap(15);
         ToggleGroup group = new ToggleGroup();
 
         for (String item : items) {
@@ -108,11 +103,13 @@ public class PantallaCaptura {
             });
             btn.selectedProperty().addListener((obs, old, isSelected) -> actualizarEstiloBotonSimple(btn));
             
-            if (item.equals(items[0])) {
+            if (item.equalsIgnoreCase(items[0])) {
                 btn.setSelected(true);
-                actualizarTicketUnico(categoria, item);
+                if(categoria.equals("Masa")) selMasa = item;
+                if(categoria.equals("Salsa")) selSalsa = item;
+                if(categoria.equals("Queso")) selQueso = item;
+                if(categoria.equals("Orilla")) selOrilla = item;
             }
-
             flow.getChildren().add(btn);
         }
         seccion.getChildren().addAll(lblTitulo, flow);
@@ -121,29 +118,24 @@ public class PantallaCaptura {
 
     private VBox crearSeccionIngredientesConImagenes() {
         VBox seccion = new VBox(15);
-        Label lblTitulo = new Label("INGREDIENTES");
+        Label lblTitulo = new Label("INGREDIENTES EXTRA");
         lblTitulo.setStyle("-fx-font-family: 'Verdana'; -fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #FFA500;");
         
         FlowPane flow = new FlowPane();
-        flow.setHgap(20);
-        flow.setVgap(20);
+        flow.setHgap(20); flow.setVgap(20);
 
-        // Catálogo de ingredientes: Nombre, Costo, Imagen
         String[][] dataIngredientes = {
             {"Pepperoni", "15", "pepperoni.png"},
-            {"Jamón", "15", "jamon-2.png"},
+            {"Jamón", "15", "jamon.png"},
             {"Tocino", "20", "tocino.png"},
             {"Salchicha", "15", "salchicha.png"},
-            {"Chorizo", "15", "chorizo.png"},
-            {"Salami", "15", "salami.png"},
-            {"Pollo", "15", "pollo.png"},
             {"Pimientos", "10", "pimientoVerde.png"},
             {"Champiñones", "12", "champinon.png"},
-            {"Albahacar", "12", "albahacar.png"},
-            {"Parmesano", "15", "parmesano.png"},
+            {"Albahaca", "12", "albahacar.png"},
             {"Aceitunas", "12", "aceitunasNegras.png"},
             {"Cebolla", "10", "cebolla.png"},
-            {"Maíz", "10", "maiz.png"}
+            {"Maíz", "10", "maiz.png"},
+            {"Queso Extra", "25", "parmesano.png"}
         };
 
         for (String[] data : dataIngredientes) {
@@ -157,8 +149,6 @@ public class PantallaCaptura {
         seccion.getChildren().addAll(lblTitulo, flow);
         return seccion;
     }
-
-    // Métodos para el diseño de botones
 
     private ToggleButton crearBotonOpcionSimple(String texto) {
         ToggleButton btn = new ToggleButton(texto);
@@ -183,38 +173,25 @@ public class PantallaCaptura {
         
         VBox layout = new VBox(5);
         layout.setAlignment(Pos.CENTER);
-        
         Node graphicNode;
         try {
-            String path = "/imagenes/" + imgFileName;
-            if (getClass().getResource(path) == null) throw new Exception("No img");
-            Image img = new Image(getClass().getResourceAsStream(path));
+            Image img = new Image(getClass().getResourceAsStream("/imagenes/" + imgFileName));
             ImageView imgView = new ImageView(img);
-            imgView.setFitWidth(70); imgView.setFitHeight(70);
-            imgView.setPreserveRatio(true);
-            imgView.setEffect(new DropShadow(10, Color.rgb(0,0,0,0.2)));
+            imgView.setFitWidth(70); imgView.setFitHeight(70); imgView.setPreserveRatio(true);
             graphicNode = imgView;
         } catch (Exception e) {
             Label lblNoImg = new Label("?");
-            lblNoImg.setStyle("-fx-text-fill: gray; -fx-font-size: 40px; -fx-font-weight: bold;");
-            lblNoImg.setMinHeight(70);
+            lblNoImg.setStyle("-fx-text-fill: gray; -fx-font-size: 40px;");
             graphicNode = lblNoImg;
         }
-
         Label lblNombre = new Label(nombre);
         lblNombre.setStyle("-fx-font-family: 'Verdana'; -fx-font-weight: bold; -fx-font-size: 13px; -fx-text-fill: inherit;");
-        lblNombre.setWrapText(true);
-        lblNombre.setTextAlignment(TextAlignment.CENTER);
-        
         Label lblPrecio = new Label("+$" + String.format("%.2f", precio));
         lblPrecio.setStyle("-fx-font-family: 'Verdana'; -fx-font-size: 12px; -fx-text-fill: #a0a0a0;"); 
 
         layout.getChildren().addAll(graphicNode, lblNombre, lblPrecio);
         btn.setGraphic(layout);
         actualizarEstiloTarjeta(btn);
-        
-        btn.setOnMouseEntered(e -> btn.setEffect(new DropShadow(15, Color.rgb(255, 165, 0, 0.4))));
-        btn.setOnMouseExited(e -> btn.setEffect(null));
         return btn;
     }
 
@@ -222,68 +199,68 @@ public class PantallaCaptura {
         VBox layout = (VBox) btn.getGraphic();
         if (layout.getChildren().size() >= 3) {
             Label lblNombre = (Label) layout.getChildren().get(1);
-            Label lblPrecio = (Label) layout.getChildren().get(2);
-            String baseStyle = "-fx-background-radius: 15; -fx-cursor: hand; -fx-padding: 10;";
             if (btn.isSelected()) {
-                btn.setStyle(baseStyle + "-fx-background-color: #23395d; -fx-border-color: #FFA500; -fx-border-width: 3; -fx-border-radius: 15;");
-                lblNombre.setStyle("-fx-font-family: 'Verdana'; -fx-font-weight: bold; -fx-font-size: 13px; -fx-text-fill: #FFA500;");
-                lblPrecio.setStyle("-fx-font-family: 'Verdana'; -fx-font-size: 12px; -fx-text-fill: white;");
+                btn.setStyle("-fx-background-color: #23395d; -fx-border-color: #FFA500; -fx-border-width: 3; -fx-border-radius: 15; -fx-background-radius: 15;");
+                lblNombre.setStyle("-fx-text-fill: #FFA500; -fx-font-weight: bold;");
             } else {
-                btn.setStyle(baseStyle + "-fx-background-color: #203354; -fx-border-color: transparent; -fx-border-width: 3;");
-                lblNombre.setStyle("-fx-font-family: 'Verdana'; -fx-font-weight: bold; -fx-font-size: 13px; -fx-text-fill: white;");
-                lblPrecio.setStyle("-fx-font-family: 'Verdana'; -fx-font-size: 12px; -fx-text-fill: #a0a0a0;");
+                btn.setStyle("-fx-background-color: #203354; -fx-border-color: transparent; -fx-background-radius: 15;");
+                lblNombre.setStyle("-fx-text-fill: white; -fx-font-weight: bold;");
             }
         }
     }
-
-    // Creación del ticket
 
     private Node crearPanelTicket() {
         VBox ticketPanel = new VBox(15);
         ticketPanel.setPadding(new Insets(20));
         ticketPanel.setPrefWidth(340); 
-        ticketPanel.setStyle("-fx-background-color: #f4f4f4; -fx-background-radius: 10; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.5), 10, 0, 0, 0);");
+        ticketPanel.setStyle("-fx-background-color: #f4f4f4; -fx-background-radius: 10;");
 
         Label tituloTicket = new Label("RESUMEN DE ORDEN");
         tituloTicket.setStyle("-fx-font-family: 'Verdana'; -fx-font-weight: bold; -fx-font-size: 18px; -fx-text-fill: #152238;");
-        
         Label lblClienteTicket = new Label("Cliente: ---");
         lblClienteTicket.textProperty().bind(javafx.beans.binding.Bindings.concat("Cliente: ", txtNombreCliente.textProperty()));
-        lblClienteTicket.setStyle("-fx-font-family: 'Verdana'; -fx-text-fill: #555; -fx-font-size: 14px;");
 
         ticketLayout = new VBox(8); 
-        
         totalLabel = new Label("TOTAL: $100.00");
         totalLabel.setStyle("-fx-font-family: 'Verdana'; -fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #152238;");
 
-        Button btnPagar = crearBotonAccion("COBRAR", "#FFA500", "#152238"); 
+        Button btnPagar = new Button("COBRAR"); 
+        btnPagar.setStyle("-fx-background-color: #FFA500; -fx-text-fill: #152238; -fx-font-weight: bold; -fx-font-size: 14px; -fx-background-radius: 20;");
+        btnPagar.setMaxWidth(Double.MAX_VALUE);
         btnPagar.setOnAction(e -> mostrarModalPago());
 
-        Button btnCancelar = crearBotonAccion("Cancelar Orden", "#d9534f", "white"); 
+        Button btnCancelar = new Button("Cancelar Orden"); 
+        btnCancelar.setStyle("-fx-background-color: #d9534f; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 14px; -fx-background-radius: 20;");
+        btnCancelar.setMaxWidth(Double.MAX_VALUE);
         btnCancelar.setOnAction(e -> app.mostrarMenuPrincipal());
 
         ticketPanel.getChildren().addAll(tituloTicket, lblClienteTicket, new Separator(), ticketLayout, new Separator(), totalLabel, btnPagar, btnCancelar);
-        HBox container = new HBox(ticketPanel);
-        container.setPadding(new Insets(0,0,0,20));
-        return container;
+        return new HBox(ticketPanel);
     }
 
     private void actualizarTicketUnico(String categoria, String item) {
+        if(categoria.equals("Masa")) selMasa = item;
+        if(categoria.equals("Salsa")) selSalsa = item;
+        if(categoria.equals("Queso")) selQueso = item;
+        if(categoria.equals("Orilla")) selOrilla = item;
+
         if (ticketLayout == null) return;
         ticketLayout.getChildren().removeIf(node -> node instanceof Label && ((Label)node).getText().startsWith(categoria + ":"));
         Label l = new Label(categoria + ": " + item);
-        l.setStyle("-fx-font-family: 'Verdana'; -fx-text-fill: #333; -fx-font-size: 13px;");
+        l.setStyle("-fx-font-family: 'Verdana'; -fx-text-fill: #333;");
         ticketLayout.getChildren().add(0, l); 
     }
 
     private void actualizarTicketIngrediente(String item, double precio, boolean agregando) {
         String textoItem = "+ " + item + " ($" + precio + ")";
         if (agregando) {
+            selIngredientes.add(item);
             costoExtras += precio;
             Label l = new Label(textoItem);
-            l.setStyle("-fx-font-family: 'Verdana'; -fx-text-fill: #333; -fx-font-size: 13px;");
+            l.setStyle("-fx-font-family: 'Verdana'; -fx-text-fill: #333;");
             ticketLayout.getChildren().add(l);
         } else {
+            selIngredientes.remove(item);
             costoExtras -= precio;
             ticketLayout.getChildren().removeIf(node -> ((Label)node).getText().equals(textoItem));
         }
@@ -295,28 +272,20 @@ public class PantallaCaptura {
         totalLabel.setText("TOTAL: $" + String.format("%.2f", total));
     }
 
-    private Button crearBotonAccion(String texto, String colorFondo, String colorTexto) {
-        Button btn = new Button(texto);
-        btn.setMaxWidth(Double.MAX_VALUE);
-        btn.setStyle("-fx-background-color: " + colorFondo + "; -fx-text-fill: " + colorTexto + "; -fx-font-family: 'Verdana'; -fx-font-weight: bold; -fx-font-size: 14px; -fx-background-radius: 20; -fx-cursor: hand;");
-        btn.setEffect(new DropShadow(5, Color.rgb(0,0,0,0.2)));
-        return btn;
-    }
-
-    // Métodos para simular el pago
     private void mostrarModalPago() {
         if(txtNombreCliente.getText().isEmpty()) {
-            mostrarAlertaError("Faltan datos", "Por favor ingresa el nombre del cliente.");
+            mostrarAlertaError("Faltan datos", "Ingrese el nombre del cliente.");
             return;
         }
         Dialog<ButtonType> dialog = new Dialog<>();
         dialog.setTitle("Procesar Pago");
         dialog.setHeaderText("Total a Pagar: " + totalLabel.getText().replace("TOTAL: ", ""));
-        estilizarDialogo(dialog);
+        
         ButtonType btnEfectivo = new ButtonType("Efectivo", ButtonBar.ButtonData.LEFT);
         ButtonType btnTarjeta = new ButtonType("Tarjeta", ButtonBar.ButtonData.LEFT);
         ButtonType btnCancelar = new ButtonType("Cancelar", ButtonBar.ButtonData.CANCEL_CLOSE);
         dialog.getDialogPane().getButtonTypes().addAll(btnEfectivo, btnTarjeta, btnCancelar);
+        
         Optional<ButtonType> result = dialog.showAndWait();
         if (result.isPresent()) {
             if (result.get() == btnEfectivo) simularPagoEfectivo();
@@ -328,17 +297,19 @@ public class PantallaCaptura {
         TextInputDialog td = new TextInputDialog();
         td.setTitle("Pago en Efectivo");
         td.setHeaderText("Ingrese monto recibido:");
-        estilizarDialogo(td); 
-        td.showAndWait().ifPresent(monto -> {
+        td.showAndWait().ifPresent(montoStr -> {
             try {
-                double montoRecibido = Double.parseDouble(monto);
-                double total = costoBase + costoExtras;
-                if (montoRecibido >= total) {
-                    mostrarAlertaExito("Pago Recibido", "Cambio a devolver: $" + String.format("%.2f", (montoRecibido - total)));
-                    mostrarExitoOrden();
-                } else {
-                    mostrarAlertaError("Error", "Monto insuficiente");
-                }
+                double monto = Double.parseDouble(montoStr);
+                // PASAMOS EL ID AL CONTROLADOR
+                boolean exito = controlador.procesarNuevaOrden(
+                    currentOrderId,
+                    txtNombreCliente.getText(), selMasa, selSalsa, selQueso, selOrilla, selIngredientes,
+                    "EFECTIVO", monto
+                );
+
+                if (exito) mostrarExitoOrden();
+                else mostrarAlertaError("Pago rechazado", "Monto insuficiente o error de sistema.");
+
             } catch (NumberFormatException e) {
                 mostrarAlertaError("Error", "Ingrese un número válido");
             }
@@ -346,74 +317,68 @@ public class PantallaCaptura {
     }
 
     private void simularPagoTarjeta() {
+        // Configuración de la ventana de carga del paog
         Alert processing = new Alert(Alert.AlertType.NONE);
         processing.setTitle("Terminal Bancaria");
-        processing.setHeaderText("Procesando pago...");
-        estilizarDialogo(processing); 
-        ProgressBar pb = new ProgressBar(); pb.setProgress(-1); 
-        VBox content = new VBox(10, new Label("Contactando al Banco..."), pb);
-        content.lookupAll(".label").forEach(n -> n.setStyle("-fx-text-fill: white; -fx-font-family: 'Verdana';"));
+        processing.setHeaderText("Conectando con el Servicio Bancario...");
+        
+        // Botón de seguridad
+        ButtonType btnCancelar = new ButtonType("Cancelar", ButtonBar.ButtonData.CANCEL_CLOSE);
+        processing.getDialogPane().getButtonTypes().add(btnCancelar);
+        
+        ProgressBar pb = new ProgressBar(); 
+        pb.setProgress(-1); 
+        
+        VBox content = new VBox(10, new Label("Validando fondos y seguridad..."), pb);
+        content.setStyle("-fx-padding: 10;");
         processing.getDialogPane().setContent(content);
-        ButtonType cancelar = new ButtonType("Cancelar", ButtonBar.ButtonData.CANCEL_CLOSE);
-        processing.getDialogPane().getButtonTypes().add(cancelar);
+        
         processing.show();
-        new java.util.Timer().schedule(new java.util.TimerTask() {
-            @Override public void run() {
-                javafx.application.Platform.runLater(() -> {
-                    processing.setResult(cancelar);
-                    processing.close();
-                    mostrarExitoOrden();
-                });
-            }
-        }, 3000);
+
+        // Simulamos el tiempo de espera del banco
+        javafx.animation.PauseTransition pause = new javafx.animation.PauseTransition(javafx.util.Duration.seconds(1));
+        
+        pause.setOnFinished(e -> {
+            processing.setResult(btnCancelar);
+            processing.close();
+
+            javafx.application.Platform.runLater(() -> {
+                boolean exito = false;
+                try {
+                    exito = controlador.procesarNuevaOrden(
+                        currentOrderId,
+                        txtNombreCliente.getText(), selMasa, selSalsa, selQueso, selOrilla, selIngredientes,
+                        "TARJETA", 0.0
+                    );
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+
+                if (exito) {
+                    mostrarExitoOrden(); // Esto muestra la alerta de éxito y regresa al menú
+                } else {
+                    mostrarAlertaError("Transacción Fallida", "La tarjeta fue rechazada por el banco.");
+                }
+            });
+        });
+        
+        pause.play();
     }
     
     private void mostrarExitoOrden() {
-        mostrarAlertaExito("Orden Enviada", "Orden " + currentOrderId + " pagada y enviada a cocina.");
-        app.mostrarMenuPrincipal();
-    }
-
-    private void mostrarAlertaExito(String titulo, String contenido) {
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle(titulo);
-        alert.setHeaderText(null);
-        alert.setContentText(contenido);
-        estilizarDialogo(alert);
+        alert.setTitle("Orden Enviada");
+        alert.setHeaderText("¡Éxito!");
+        alert.setContentText("Orden enviada a cocina.");
         alert.showAndWait();
+        app.mostrarMenuPrincipal();
     }
 
     private void mostrarAlertaError(String titulo, String contenido) {
         Alert alert = new Alert(Alert.AlertType.ERROR);
         alert.setTitle(titulo);
-        alert.setHeaderText(null);
         alert.setContentText(contenido);
-        estilizarDialogo(alert);
         alert.showAndWait();
-    }
-
-    private void estilizarDialogo(Dialog<?> dialog) {
-        DialogPane pane = dialog.getDialogPane();
-        pane.setStyle("-fx-background-color: #0f192b; -fx-font-family: 'Verdana';");
-        pane.lookupAll(".label").forEach(node -> node.setStyle("-fx-text-fill: white;"));
-        pane.lookupAll(".content.label").forEach(node -> node.setStyle("-fx-text-fill: white; -fx-font-size: 14px;"));
-        Node headerPanel = pane.lookup(".header-panel");
-        if (headerPanel != null) {
-            headerPanel.setStyle("-fx-background-color: #203354; -fx-padding: 10;");
-            headerPanel.lookupAll(".label").forEach(node -> node.setStyle("-fx-text-fill: white; -fx-font-family: 'Verdana'; -fx-font-weight: bold; -fx-font-size: 14px;"));
-        }
-        for (ButtonType bt : pane.getButtonTypes()) {
-            Node btnNode = pane.lookupButton(bt);
-            if (btnNode != null) {
-                btnNode.setStyle("-fx-background-color: #FFA500; -fx-text-fill: #152238; -fx-font-family: 'Verdana'; -fx-font-weight: bold; -fx-font-size: 13px; -fx-background-radius: 15; -fx-cursor: hand; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 5, 0, 0, 1);");
-                btnNode.setOnMouseEntered(e -> btnNode.setStyle("-fx-background-color: #FFD700; -fx-text-fill: #152238; -fx-background-radius: 15; -fx-font-weight: bold;"));
-                btnNode.setOnMouseExited(e -> btnNode.setStyle("-fx-background-color: #FFA500; -fx-text-fill: #152238; -fx-background-radius: 15; -fx-font-weight: bold;"));
-            }
-        }
-        if (dialog instanceof TextInputDialog) {
-            TextInputDialog tid = (TextInputDialog) dialog;
-            TextField tf = tid.getEditor();
-            if (tf != null) tf.setStyle("-fx-background-color: white; -fx-text-fill: #152238; -fx-font-family: 'Verdana'; -fx-font-size: 14px; -fx-background-radius: 5;");
-        }
     }
 
     public Pane getView() { return view; }
